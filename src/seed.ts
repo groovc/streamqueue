@@ -2,9 +2,6 @@ import { pool } from "./db";
 import { migrate } from "./migrate";
 
 const SEED = `
-  -- Clear existing data
-  TRUNCATE users, content, watch_history, streaming_sessions, content_availability RESTART IDENTITY CASCADE;
-
   -- Users with different subscription tiers
   INSERT INTO users (email, name, subscription_tier, api_token) VALUES
     ('alice@example.com', 'Alice Chen', 'premium', 'tok_alice_premium'),
@@ -26,19 +23,19 @@ const SEED = `
     (20, 'The Kitchen', 'series', 'Comedy', 2024, 'TV-MA', 'A struggling chef inherits a chaotic restaurant in Brooklyn.', '/thumbnails/the-kitchen.jpg');
 
   -- Episodes for Quantum Loop (series_id = 10)
-  INSERT INTO content (title, type, genre, release_year, rating, duration_minutes, series_id, season_number, episode_number, description) VALUES
-    ('Pilot', 'episode', 'Sci-Fi', 2023, 'TV-14', 52, 10, 1, 1, 'Dr. Maya Lin activates the quantum device for the first time.'),
-    ('Echoes', 'episode', 'Sci-Fi', 2023, 'TV-14', 48, 10, 1, 2, 'The team realizes they are reliving the same day.'),
-    ('Fracture', 'episode', 'Sci-Fi', 2023, 'TV-14', 55, 10, 1, 3, 'A crack in the loop reveals an alternate timeline.'),
-    ('Convergence', 'episode', 'Sci-Fi', 2023, 'TV-14', 50, 10, 1, 4, 'Two versions of Maya must work together.'),
-    ('The Exit', 'episode', 'Sci-Fi', 2023, 'TV-14', 60, 10, 1, 5, 'Season finale. The team makes a desperate attempt to break free.');
+  INSERT INTO content (id, title, type, genre, release_year, rating, duration_minutes, series_id, season_number, episode_number, description) VALUES
+    (101, 'Pilot', 'episode', 'Sci-Fi', 2023, 'TV-14', 52, 10, 1, 1, 'Dr. Maya Lin activates the quantum device for the first time.'),
+    (102, 'Echoes', 'episode', 'Sci-Fi', 2023, 'TV-14', 48, 10, 1, 2, 'The team realizes they are reliving the same day.'),
+    (103, 'Fracture', 'episode', 'Sci-Fi', 2023, 'TV-14', 55, 10, 1, 3, 'A crack in the loop reveals an alternate timeline.'),
+    (104, 'Convergence', 'episode', 'Sci-Fi', 2023, 'TV-14', 50, 10, 1, 4, 'Two versions of Maya must work together.'),
+    (105, 'The Exit', 'episode', 'Sci-Fi', 2023, 'TV-14', 60, 10, 1, 5, 'Season finale. The team makes a desperate attempt to break free.');
 
   -- Episodes for The Kitchen (series_id = 20)
-  INSERT INTO content (title, type, genre, release_year, rating, duration_minutes, series_id, season_number, episode_number, description) VALUES
-    ('Opening Night', 'episode', 'Comedy', 2024, 'TV-MA', 30, 20, 1, 1, 'Marco arrives in Brooklyn to claim his inheritance.'),
-    ('Health Inspector', 'episode', 'Comedy', 2024, 'TV-MA', 28, 20, 1, 2, 'A surprise inspection threatens to shut everything down.'),
-    ('The Critic', 'episode', 'Comedy', 2024, 'TV-MA', 31, 20, 1, 3, 'A famous food critic is coming — but nobody can agree on the menu.'),
-    ('Family Recipe', 'episode', 'Comedy', 2024, 'TV-MA', 29, 20, 1, 4, 'Marcos grandmother visits with strong opinions.');
+  INSERT INTO content (id, title, type, genre, release_year, rating, duration_minutes, series_id, season_number, episode_number, description) VALUES
+    (201, 'Opening Night', 'episode', 'Comedy', 2024, 'TV-MA', 30, 20, 1, 1, 'Marco arrives in Brooklyn to claim his inheritance.'),
+    (202, 'Health Inspector', 'episode', 'Comedy', 2024, 'TV-MA', 28, 20, 1, 2, 'A surprise inspection threatens to shut everything down.'),
+    (203, 'The Critic', 'episode', 'Comedy', 2024, 'TV-MA', 31, 20, 1, 3, 'A famous food critic is coming — but nobody can agree on the menu.'),
+    (204, 'Family Recipe', 'episode', 'Comedy', 2024, 'TV-MA', 29, 20, 1, 4, 'Marcos grandmother visits with strong opinions.');
 
   -- Watch history (some existing records for Alice and Bob)
   INSERT INTO watch_history (user_id, content_id, progress_seconds, duration_seconds, completed) VALUES
@@ -73,9 +70,23 @@ const SEED = `
     (10, 'UK', '2024-01-01', NULL),
     -- The Kitchen: US only
     (20, 'US', '2024-03-01', NULL);
+
+  -- Reset sequences to avoid conflicts with future inserts
+  SELECT setval('content_id_seq', (SELECT MAX(id) FROM content));
+  SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+  SELECT setval('watch_history_id_seq', (SELECT MAX(id) FROM watch_history));
+  SELECT setval('content_availability_id_seq', (SELECT MAX(id) FROM content_availability));
 `;
 
 async function seed() {
+  console.log("Dropping existing tables...");
+  await pool.query(`
+    DROP TABLE IF EXISTS content_availability CASCADE;
+    DROP TABLE IF EXISTS streaming_sessions CASCADE;
+    DROP TABLE IF EXISTS watch_history CASCADE;
+    DROP TABLE IF EXISTS content CASCADE;
+    DROP TABLE IF EXISTS users CASCADE;
+  `);
   await migrate();
   console.log("Seeding database...");
   await pool.query(SEED);
