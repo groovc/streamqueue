@@ -1,4 +1,4 @@
-# StreamQueue — Senior SWE Coding Exercise
+# StreamQueue — Coding Exercise
 
 A partially-built REST API for a video streaming platform. Your job is to fix bugs, implement features, and demonstrate your problem-solving approach.
 
